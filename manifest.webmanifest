@@ -1,0 +1,19 @@
+{
+  "name": "Stack Arthur Attack",
+  "short_name": "Stack Arthur",
+  "description": "Remake web/mobile de Stack Attack 2 feito para o Arthur.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#101117",
+  "theme_color": "#101117",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
