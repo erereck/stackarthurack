@@ -4,7 +4,14 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
   <meta name="theme-color" content="#101117" />
+  <meta name="application-name" content="Stack Arthur Attack" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Stack Arthur" />
   <title>Stack Arthur Attack</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="icon.svg" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -74,7 +81,7 @@
       <div class="card">
         <p class="eyebrow">remake não-oficial feito pro Arthur</p>
         <h1>STACK <span>ARTHUR</span><br />ATTACK</h1>
-        <div class="versionPlate">BUILD 0.4 • MOBILE</div>
+        <div class="versionPlate">BUILD 0.5 • PWA</div>
         <div class="versionPlate">HIGH SCORE • <strong id="menuBest">0</strong></div>
         <p id="overlayText">Guindastes atravessam o trilho, escolhem uma coluna e soltam as caixas. Feche linhas, faça 3 iguais e sobreviva.</p>
         <div class="chars" id="chars"></div>
@@ -82,11 +89,13 @@
         <div class="menuActions">
           <button class="start" id="start" type="button">JOGAR</button>
           <button class="secondary" id="openControls" type="button">AJUSTAR CONTROLES</button>
+          <button class="secondary" id="installApp" type="button">INSTALAR APP</button>
         </div>
       </div>
     </section>
   </main>
   <script src="game.js"></script>
   <script src="controls-editor.js"></script>
+  <script src="pwa.js"></script>
 </body>
 </html>
