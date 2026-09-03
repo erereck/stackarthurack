@@ -85,17 +85,23 @@
     }, 90);
   }
 
-  function cellPoint(position, button) {
+  function gridMetrics() {
     const rect = controls.getBoundingClientRect();
-    const buttonRect = button.getBoundingClientRect();
-    const halfW = Math.max(34, buttonRect.width / 2);
-    const halfH = Math.max(34, buttonRect.height / 2);
-    const padX = Math.min(rect.width * 0.18, halfW + 8);
-    const padY = Math.min(rect.height * 0.26, halfH + 7);
+    const scale = state.size / 100;
+    const maxW = Math.max(...buttons.map((button) => button.offsetWidth)) * scale;
+    const maxH = Math.max(...buttons.map((button) => button.offsetHeight)) * scale;
+    const padX = Math.min(rect.width * 0.18, maxW / 2 + 8);
+    const padY = Math.min(rect.height * 0.26, maxH / 2 + 7);
     const usableW = Math.max(1, rect.width - padX * 2);
     const usableH = Math.max(1, rect.height - padY * 2);
-    const x = state.cols <= 1 ? rect.width / 2 : padX + (position.c / (state.cols - 1)) * usableW;
-    const y = state.rows <= 1 ? rect.height / 2 : padY + (position.r / (state.rows - 1)) * usableH;
+    const stepX = state.cols > 1 ? usableW / (state.cols - 1) : 0;
+    const stepY = state.rows > 1 ? usableH / (state.rows - 1) : 0;
+    return { rect, padX, padY, usableW, usableH, stepX, stepY };
+  }
+
+  function cellPoint(position, metrics) {
+    const x = state.cols <= 1 ? metrics.rect.width / 2 : metrics.padX + position.c * metrics.stepX;
+    const y = state.rows <= 1 ? metrics.rect.height / 2 : metrics.padY + position.r * metrics.stepY;
     return { x, y };
   }
 
@@ -109,10 +115,16 @@
     rowsValue.textContent = String(state.rows);
     sizeValue.textContent = state.size + '%';
 
+    const metrics = gridMetrics();
+    controls.style.setProperty('--grid-pad-x', metrics.padX + 'px');
+    controls.style.setProperty('--grid-pad-y', metrics.padY + 'px');
+    controls.style.setProperty('--grid-step-x', Math.max(1, metrics.stepX) + 'px');
+    controls.style.setProperty('--grid-step-y', Math.max(1, metrics.stepY) + 'px');
+
     for (const button of buttons) {
       const key = button.dataset.key;
       const position = state.positions[key] || DEFAULTS.positions[key];
-      const point = cellPoint(position, button);
+      const point = cellPoint(position, metrics);
       button.style.left = point.x + 'px';
       button.style.top = point.y + 'px';
       button.style.transform = `translate(-50%, -50%) scale(${state.size / 100})`;
@@ -121,19 +133,12 @@
     }
   }
 
-  function closestCell(clientX, clientY, button) {
-    const rect = controls.getBoundingClientRect();
-    const buttonRect = button.getBoundingClientRect();
-    const halfW = Math.max(34, buttonRect.width / 2);
-    const halfH = Math.max(34, buttonRect.height / 2);
-    const padX = Math.min(rect.width * 0.18, halfW + 8);
-    const padY = Math.min(rect.height * 0.26, halfH + 7);
-    const usableW = Math.max(1, rect.width - padX * 2);
-    const usableH = Math.max(1, rect.height - padY * 2);
-    const localX = clamp(clientX - rect.left, padX, rect.width - padX);
-    const localY = clamp(clientY - rect.top, padY, rect.height - padY);
-    const c = state.cols <= 1 ? 0 : Math.round(((localX - padX) / usableW) * (state.cols - 1));
-    const r = state.rows <= 1 ? 0 : Math.round(((localY - padY) / usableH) * (state.rows - 1));
+  function closestCell(clientX, clientY) {
+    const metrics = gridMetrics();
+    const localX = clamp(clientX - metrics.rect.left, metrics.padX, metrics.rect.width - metrics.padX);
+    const localY = clamp(clientY - metrics.rect.top, metrics.padY, metrics.rect.height - metrics.padY);
+    const c = state.cols <= 1 ? 0 : Math.round((localX - metrics.padX) / metrics.stepX);
+    const r = state.rows <= 1 ? 0 : Math.round((localY - metrics.padY) / metrics.stepY);
     return { c: clamp(c, 0, state.cols - 1), r: clamp(r, 0, state.rows - 1) };
   }
 
@@ -215,7 +220,7 @@
   function dragMove(event) {
     if (!editing || !dragged || event.pointerId !== activePointer) return;
     event.preventDefault();
-    const target = closestCell(event.clientX, event.clientY, dragged);
+    const target = closestCell(event.clientX, event.clientY);
     moveButtonTo(dragged.dataset.key, target);
     applyLayout();
   }
