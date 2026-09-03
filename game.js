@@ -12,6 +12,7 @@
   const linesEl = document.querySelector('#lines');
   const craneCountEl = document.querySelector('#craneCount');
   const bestEl = document.querySelector('#best');
+  const menuBestEl = document.querySelector('#menuBest');
   const charBox = document.querySelector('#chars');
   const charDesc = document.querySelector('#charDesc');
 
@@ -54,7 +55,9 @@
   charDesc.textContent = characters[0].desc;
 
   let best = Number(localStorage.stackArthurBest || 0);
+  let sessionStartBest = best;
   bestEl.textContent = best;
+  if (menuBestEl) menuBestEl.textContent = best;
 
   let running = false;
   let paused = false;
@@ -187,6 +190,7 @@
   }
 
   function reset() {
+    sessionStartBest = best;
     score = 0;
     clearedLines = 0;
     activeCranes = 1;
@@ -211,8 +215,9 @@
     if (score > best) {
       best = score;
       localStorage.stackArthurBest = String(best);
-      bestEl.textContent = best;
     }
+    bestEl.textContent = best;
+    if (menuBestEl) menuBestEl.textContent = best;
   }
 
   function toastMsg(text) {
@@ -316,12 +321,18 @@
   }
 
   function updateBlockAnimations(dt) {
-    const blend = 1 - Math.exp(-15 * dt);
+    const verticalBlend = 1 - Math.exp(-15 * dt);
+    const horizontalBlend = 1 - Math.exp(-19 * dt);
     for (const block of blocks) {
-      if (!Number.isFinite(block.visualY)) continue;
-      const targetY = blockRect(block).y;
-      block.visualY += (targetY - block.visualY) * blend;
-      if (Math.abs(targetY - block.visualY) < 0.45) delete block.visualY;
+      const targetRect = blockRect(block);
+      if (Number.isFinite(block.visualY)) {
+        block.visualY += (targetRect.y - block.visualY) * verticalBlend;
+        if (Math.abs(targetRect.y - block.visualY) < 0.45) delete block.visualY;
+      }
+      if (Number.isFinite(block.visualX)) {
+        block.visualX += (targetRect.x - block.visualX) * horizontalBlend;
+        if (Math.abs(targetRect.x - block.visualX) < 0.45) delete block.visualX;
+      }
     }
   }
 
@@ -450,7 +461,10 @@
     if (!target) return false;
     const nextCol = target.c + dir;
     if (nextCol < 0 || nextCol >= COLS || occupied(nextCol, target.r)) return false;
+    const oldRect = blockRect(target);
+    const previousVisualX = Number.isFinite(target.visualX) ? target.visualX : oldRect.x;
     target.c = nextCol;
+    target.visualX = previousVisualX;
     settleBoard(true);
     score += 1;
     updateHUD();
@@ -582,7 +596,8 @@
     setTimeout(() => {
       overlay.style.display = 'grid';
       overlay.querySelector('h1').innerHTML = 'FIM DE<br><span>TURNO</span>';
-      overlayText.innerHTML = 'Arthur fez <b>' + score + '</b> pontos e limpou <b>' + clearedLines + '</b> linhas.';
+      const newHighScore = score > sessionStartBest;
+      overlayText.innerHTML = (newHighScore ? '<b>NOVO HIGH SCORE!</b><br>' : '') + 'Arthur fez <b>' + score + '</b> pontos e limpou <b>' + clearedLines + '</b> linhas.<br>High score: <b>' + best + '</b>.';
       startButton.textContent = 'JOGAR DE NOVO';
     }, 320);
   }
@@ -732,8 +747,9 @@
     cranes.forEach(drawCrane);
     blocks.forEach((b) => {
       const r = blockRect(b);
+      const drawX = Number.isFinite(b.visualX) ? b.visualX : r.x;
       const drawY = Number.isFinite(b.visualY) ? b.visualY : r.y;
-      drawCrate(r.x, drawY, r.w, r.h, b.color, 'normal');
+      drawCrate(drawX, drawY, r.w, r.h, b.color, 'normal');
     });
     falling.forEach((f) => drawCrate(f.x, f.y, f.w, f.h, f.color, f.type));
     drawPlayer();
