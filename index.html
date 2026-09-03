@@ -3,45 +3,89 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
-  <meta name="theme-color" content="#14131b" />
+  <meta name="theme-color" content="#101117" />
   <title>Stack Arthur Attack</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <main id="app" aria-label="Stack Arthur Attack">
+    <div class="cabinetTop" aria-hidden="true">
+      <span class="cabinetLed"></span>
+      <span class="cabinetName">STACK ARTHUR ATTACK // MOBILE BUILD</span>
+      <span class="cabinetLed"></span>
+    </div>
+
     <section id="hud" aria-live="polite">
       <div class="hudBox"><small>PTS</small><strong id="score">0</strong></div>
       <div class="hudBox"><small>LINHAS</small><strong id="lines">0</strong></div>
-      <div class="hudBox"><small>GUINDASTES</small><strong id="craneCount">1</strong></div>
+      <div class="hudBox"><small>GRUAS</small><strong id="craneCount">1</strong></div>
       <div class="hudBox"><small>REC</small><strong id="best">0</strong></div>
     </section>
 
-    <button id="pause" class="roundBtn" type="button" aria-label="Pausar">Ⅱ</button>
+    <div class="topActions">
+      <button id="controlSettings" class="roundBtn" type="button" aria-label="Configurar controles" title="Configurar controles">✥</button>
+      <button id="pause" class="roundBtn" type="button" aria-label="Pausar">Ⅱ</button>
+    </div>
     <div id="toast" aria-live="polite"></div>
 
     <section id="stageWrap">
       <canvas id="game" width="660" height="760" aria-label="Área de jogo"></canvas>
+      <div class="screenGlass" aria-hidden="true"></div>
     </section>
 
-    <section id="controls" aria-label="Controles">
-      <div class="pad">
-        <button class="gameBtn" data-key="left" type="button" aria-label="Mover para esquerda">◀</button>
-        <button class="gameBtn" data-key="right" type="button" aria-label="Mover para direita">▶</button>
-      </div>
+    <section id="controls" aria-label="Controles de toque">
+      <button class="gameBtn direction" data-key="left" type="button" aria-label="Mover para esquerda"><span>◀</span></button>
+      <button class="gameBtn direction" data-key="right" type="button" aria-label="Mover para direita"><span>▶</span></button>
       <button class="gameBtn jump" data-key="jump" type="button" aria-label="Pular"><span class="arrow">▲</span><span class="tiny">PULAR</span></button>
     </section>
+
+    <aside id="controlEditor" aria-label="Editor dos controles" hidden>
+      <div class="editorPanel">
+        <div class="editorTitle">
+          <div>
+            <small>LAYOUT MOBILE</small>
+            <strong>MOVER CONTROLES</strong>
+          </div>
+          <button id="closeControlEditor" class="editorClose" type="button" aria-label="Fechar editor">✓</button>
+        </div>
+        <p>Arraste cada botão até um ponto da grade. As posições ficam salvas neste aparelho.</p>
+        <div class="editorSliders">
+          <label>
+            <span>Colunas <b id="gridColsValue">6</b></span>
+            <input id="gridCols" type="range" min="4" max="10" step="1" value="6" />
+          </label>
+          <label>
+            <span>Linhas <b id="gridRowsValue">2</b></span>
+            <input id="gridRows" type="range" min="2" max="4" step="1" value="2" />
+          </label>
+          <label>
+            <span>Tamanho <b id="controlSizeValue">100%</b></span>
+            <input id="controlSize" type="range" min="75" max="125" step="5" value="100" />
+          </label>
+        </div>
+        <div class="editorActions">
+          <button id="resetControls" type="button">RESTAURAR PADRÃO</button>
+          <span id="controlSaveState" aria-live="polite">salvo automaticamente</span>
+        </div>
+      </div>
+    </aside>
 
     <section id="overlay">
       <div class="card">
         <p class="eyebrow">remake não-oficial feito pro Arthur</p>
         <h1>STACK <span>ARTHUR</span><br />ATTACK</h1>
-        <p id="overlayText">Agora o guindaste realmente atravessa o trilho, escolhe uma coluna e solta a caixa. Feche linhas, faça 3 iguais e sobreviva.</p>
+        <div class="versionPlate">BUILD 0.3 • MOBILE</div>
+        <p id="overlayText">Guindastes atravessam o trilho, escolhem uma coluna e soltam as caixas. Feche linhas, faça 3 iguais e sobreviva.</p>
         <div class="chars" id="chars"></div>
         <p class="desc" id="charDesc"></p>
-        <button class="start" id="start" type="button">JOGAR</button>
+        <div class="menuActions">
+          <button class="start" id="start" type="button">JOGAR</button>
+          <button class="secondary" id="openControls" type="button">AJUSTAR CONTROLES</button>
+        </div>
       </div>
     </section>
   </main>
   <script src="game.js"></script>
+  <script src="controls-editor.js"></script>
 </body>
 </html>
