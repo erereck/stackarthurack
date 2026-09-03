@@ -295,10 +295,33 @@
     vibrate(8);
   }
 
-  function settleBoard() {
+  function settleBoard(animateDrop = false) {
+    const previousY = animateDrop
+      ? new Map(blocks.map((block) => [block.id, Number.isFinite(block.visualY) ? block.visualY : blockRect(block).y]))
+      : null;
+
     for (let c = 0; c < COLS; c++) {
       const column = blocks.filter((b) => b.c === c).sort((a, b) => a.r - b.r);
       column.forEach((block, row) => { block.r = row; });
+    }
+
+    if (previousY) {
+      for (const block of blocks) {
+        const fromY = previousY.get(block.id);
+        const targetY = blockRect(block).y;
+        if (Number.isFinite(fromY) && fromY < targetY - 0.5) block.visualY = fromY;
+        else delete block.visualY;
+      }
+    }
+  }
+
+  function updateBlockAnimations(dt) {
+    const blend = 1 - Math.exp(-15 * dt);
+    for (const block of blocks) {
+      if (!Number.isFinite(block.visualY)) continue;
+      const targetY = blockRect(block).y;
+      block.visualY += (targetY - block.visualY) * blend;
+      if (Math.abs(targetY - block.visualY) < 0.45) delete block.visualY;
     }
   }
 
@@ -380,16 +403,19 @@
       score += 150;
       updateHUD();
       toastMsg('+150!');
+      vibrate(14);
       return true;
     }
     if (fallingBlock.type === 'helmet') {
       helmet = 1;
       toastMsg('CAPACETE!');
+      vibrate(14);
       return true;
     }
     if (fallingBlock.type === 'jump') {
       superJumps += 3;
       toastMsg('3 SUPER PULOS!');
+      vibrate(14);
       return true;
     }
     return false;
@@ -425,7 +451,7 @@
     const nextCol = target.c + dir;
     if (nextCol < 0 || nextCol >= COLS || occupied(nextCol, target.r)) return false;
     target.c = nextCol;
-    settleBoard();
+    settleBoard(true);
     score += 1;
     updateHUD();
     resolveBoard();
@@ -499,17 +525,22 @@
   function updateFalling(dt) {
     for (let i = falling.length - 1; i >= 0; i--) {
       const f = falling[i];
+      const previousBottom = f.y + f.h;
       f.vy += 760 * dt;
       f.y += f.vy * dt;
 
       const playerRect = { x: player.x, y: player.y, w: player.w, h: player.h };
       const fallingRect = { x: f.x, y: f.y, w: f.w, h: f.h };
+      const special = f.type !== 'normal';
+      const horizontalOverlap = fallingRect.x < playerRect.x + playerRect.w && fallingRect.x + fallingRect.w > playerRect.x;
+      const hitHead = special && f.vy > 0 && horizontalOverlap && previousBottom <= player.y + 7 && f.y + f.h >= player.y;
 
-      if (rectHit(fallingRect, playerRect)) {
-        if (collectSpecial(f)) {
+      if (special) {
+        if (hitHead && collectSpecial(f)) {
           falling.splice(i, 1);
           continue;
         }
+      } else if (rectHit(fallingRect, playerRect)) {
         const playerHead = player.y + 12;
         const hitFromBelow = player.vy < -35 && playerHead >= f.y + f.h - 16;
         if (hitFromBelow) {
@@ -531,7 +562,7 @@
       const floorY = GROUND - columnHeight(f.c) * CELL;
       if (f.y + f.h >= floorY) {
         f.y = floorY - f.h;
-        if (collectSpecial(f)) {
+        if (special) {
           falling.splice(i, 1);
           continue;
         }
@@ -571,6 +602,7 @@
     cranes.forEach((crane) => updateCrane(crane, dt));
     updatePlayer(dt);
     updateFalling(dt);
+    updateBlockAnimations(dt);
     updateParticles(dt);
     shake = Math.max(0, shake - dt * 20);
   }
@@ -700,7 +732,8 @@
     cranes.forEach(drawCrane);
     blocks.forEach((b) => {
       const r = blockRect(b);
-      drawCrate(r.x, r.y, r.w, r.h, b.color, 'normal');
+      const drawY = Number.isFinite(b.visualY) ? b.visualY : r.y;
+      drawCrate(r.x, drawY, r.w, r.h, b.color, 'normal');
     });
     falling.forEach((f) => drawCrate(f.x, f.y, f.w, f.h, f.color, f.type));
     drawPlayer();
