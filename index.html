@@ -1,127 +1,47 @@
 <!doctype html>
 <html lang="pt-BR">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
-<meta name="theme-color" content="#121722" />
-<title>Stack Arthur Attack</title>
-<style>
-:root{--ui:#111827;--panel:#1f2937;--ink:#f8fafc;--muted:#a9b5c6;--accent:#f5c542;--danger:#ff5d66}
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none}
-html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#0b1020;color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;touch-action:none}
-body{display:flex;justify-content:center;align-items:center}
-#app{position:relative;width:min(100vw,620px);height:100dvh;max-height:1000px;background:linear-gradient(#8cc6e8 0 12%,#f1a6a3 12% 75%,#262c38 75%);overflow:hidden;box-shadow:0 0 60px #0008}
-#hud{position:absolute;z-index:5;top:max(8px,env(safe-area-inset-top));left:10px;right:10px;display:flex;justify-content:space-between;gap:8px;pointer-events:none;font-weight:900;text-shadow:0 2px 0 #0006}
-.hudBox{background:#111b;border:2px solid #ffffff55;border-radius:12px;padding:7px 10px;min-width:86px;text-align:center;backdrop-filter:blur(5px)}
-#stageWrap{position:absolute;left:0;right:0;top:0;bottom:126px}
-canvas{width:100%;height:100%;display:block;image-rendering:pixelated}
-#controls{position:absolute;z-index:8;left:0;right:0;bottom:0;height:132px;padding:10px max(12px,env(safe-area-inset-right)) max(10px,env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left));display:flex;align-items:center;justify-content:space-between;background:linear-gradient(#111827dd,#080d16f5);border-top:2px solid #ffffff22}
-.pad{display:flex;gap:10px}.btn{width:82px;height:82px;border-radius:22px;border:2px solid #ffffff35;background:#273244;color:white;font-size:34px;font-weight:1000;display:grid;place-items:center;box-shadow:inset 0 -7px #0004,0 6px 14px #0005;touch-action:none}.btn.on,.btn:active{transform:translateY(4px);box-shadow:inset 0 -2px #0004;background:#3b4a62}.btn.jump{width:96px;background:#7d5a1f;font-size:28px}.tiny{font-size:14px}
-#overlay{position:absolute;z-index:20;inset:0;background:linear-gradient(#101827dd,#090d16f4);display:flex;align-items:center;justify-content:center;padding:22px;overflow:auto}
-.card{width:min(480px,100%);background:#151d2b;border:2px solid #ffffff2b;border-radius:24px;padding:24px;box-shadow:0 24px 80px #0009;text-align:center}.card h1{font-size:clamp(34px,9vw,62px);line-height:.86;margin:0 0 10px;letter-spacing:-3px}.gold{color:#f5c542}.card p{color:#c9d4e5;margin:8px 0 18px}.start{width:100%;border:0;border-radius:16px;background:#f5c542;color:#17120a;padding:15px 18px;font-weight:1000;font-size:20px;box-shadow:0 6px 0 #9c761a;cursor:pointer}.start:active{transform:translateY(4px);box-shadow:0 2px 0 #9c761a}.chars{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:16px 0}.char{padding:9px 5px;border:2px solid #ffffff20;border-radius:13px;background:#222d3e;color:#fff;font-weight:800}.char.active{border-color:#f5c542;background:#3c3520}.desc{font-size:12px;color:#9fb0c5!important;min-height:34px;margin:4px 0!important}
-#pause{position:absolute;z-index:10;right:10px;top:58px;width:42px;height:42px;border:0;border-radius:12px;background:#111c;color:white;font-size:18px;font-weight:900}
-#toast{position:absolute;z-index:11;top:104px;left:50%;transform:translateX(-50%);font-weight:1000;font-size:23px;text-shadow:0 3px 0 #0008;opacity:0;transition:opacity .15s;white-space:nowrap;pointer-events:none}
-@media (max-height:600px){#controls{height:96px}.btn{width:62px;height:62px;border-radius:17px}.btn.jump{width:78px;height:62px}#stageWrap{bottom:96px}}
-</style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
+  <meta name="theme-color" content="#14131b" />
+  <title>Stack Arthur Attack</title>
+  <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-<div id="app">
-  <div id="hud"><div class="hudBox">PTS <span id="score">0</span></div><div class="hudBox">LINHAS <span id="lines">0</span></div><div class="hudBox">REC <span id="best">0</span></div></div>
-  <button id="pause">Ⅱ</button>
-  <div id="toast"></div>
-  <div id="stageWrap"><canvas id="game" width="540" height="720"></canvas></div>
-  <div id="controls"><div class="pad"><div class="btn" data-key="left">◀</div><div class="btn" data-key="right">▶</div></div><div class="btn jump" data-key="jump">▲<span class="tiny">PULAR</span></div></div>
-  <div id="overlay"><div class="card"><h1>STACK <span class="gold">ARTHUR</span><br>ATTACK</h1><p>Clone jogável inspirado no <b>Stack Attack 2 Pro</b>. Empurre as caixas, forme linhas e não vire panqueca industrial.</p><div class="chars" id="chars"></div><p class="desc" id="charDesc"></p><button class="start" id="start">JOGAR</button></div></div>
-</div>
-<script>
-(()=>{
-'use strict';
-const cv=document.querySelector('#game'),ctx=cv.getContext('2d');
-const overlay=document.querySelector('#overlay'),scoreEl=document.querySelector('#score'),linesEl=document.querySelector('#lines'),bestEl=document.querySelector('#best'),toast=document.querySelector('#toast');
-const COLS=9, ROWS=10, GROUND=670, CELL=52, BX=(cv.width-COLS*CELL)/2;
-const colors=['#ef3d35','#f1df28','#2d71e8','#39ca61'];
-const chars=[
- {name:'Arthur',speed:180,jump:405,push:1,desc:'Equilibrado — a experiência padrão.'},
- {name:'Turbo',speed:218,jump:380,push:1,desc:'Corre mais, salta um pouco menos.'},
- {name:'Mola',speed:164,jump:465,push:1,desc:'Salto alto para escapar das quedas.'},
- {name:'Trator',speed:150,jump:385,push:1.25,desc:'Empurra caixas com resposta mais firme.'},
- {name:'Ninja',speed:205,jump:430,push:.9,desc:'Rápido e ágil, mas exige precisão.'},
- {name:'Clássico',speed:172,jump:400,push:1,desc:'Ritmo mais próximo de um celular antigo.'}
-];
-let selected=0;const charBox=document.querySelector('#chars'),charDesc=document.querySelector('#charDesc');
-chars.forEach((c,i)=>{const b=document.createElement('button');b.className='char'+(i===0?' active':'');b.textContent=c.name;b.onclick=()=>{selected=i;[...charBox.children].forEach(x=>x.classList.remove('active'));b.classList.add('active');charDesc.textContent=c.desc};charBox.appendChild(b)});charDesc.textContent=chars[0].desc;
-let best=Number(localStorage.stackArthurBest||0);bestEl.textContent=best;
-let running=false,paused=false,last=0,spawnT=0,difficultyT=0,score=0,lines=0,cranes=1,helmet=0,superJumps=0;
-let blocks=[],falling=[],particles=[];
-let player={x:BX+CELL*4+8,y:GROUND-44,w:30,h:44,vx:0,vy:0,onGround:true,dead:false};
-const keys={left:false,right:false,jump:false};
-const craneXs=[BX+CELL*1.3,BX+CELL*4.5,BX+CELL*7.7];
-function reset(){score=0;lines=0;cranes=1;spawnT=.9;difficultyT=0;helmet=0;superJumps=0;blocks=[];falling=[];particles=[];player={x:BX+CELL*4+8,y:GROUND-44,w:30,h:44,vx:0,vy:0,onGround:true,dead:false};updateHUD();}
-function updateHUD(){scoreEl.textContent=score;linesEl.textContent=lines;if(score>best){best=score;localStorage.stackArthurBest=best;bestEl.textContent=best}}
-function blockRect(b){return{x:BX+b.c*CELL+3,y:GROUND-(b.r+1)*CELL+3,w:CELL-6,h:CELL-6}}
-function occupied(c,r,ignore=null){return blocks.find(b=>b!==ignore&&b.c===c&&b.r===r)}
-function maxRow(c){let m=-1;blocks.forEach(b=>{if(b.c===c)m=Math.max(m,b.r)});return m}
-function spawn(){const crane=Math.floor(Math.random()*cranes), c=Math.max(0,Math.min(COLS-1,Math.round((craneXs[crane]-BX)/CELL + (Math.random()*2-1)*1.1)));let type='normal';let roll=Math.random();if(roll<.045)type='bonus';else if(roll<.078)type='helmet';else if(roll<.105)type='jump';falling.push({c,x:BX+c*CELL+3,y:62,w:CELL-6,h:CELL-6,color:Math.floor(Math.random()*colors.length),type,vy:0});}
-function solids(){return blocks.map(b=>({...blockRect(b),b}));}
-function rectHit(a,b){return a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y}
-function toastMsg(s){toast.textContent=s;toast.style.opacity=1;clearTimeout(toast._t);toast._t=setTimeout(()=>toast.style.opacity=0,700)}
-function collectSpecial(f){if(f.type==='bonus'){score+=150;toastMsg('+150!');return true}if(f.type==='helmet'){helmet=Math.max(helmet,1);toastMsg('CAPACETE!');return true}if(f.type==='jump'){superJumps+=3;toastMsg('3 SUPER PULOS!');return true}return false}
-function landFalling(f){let row=maxRow(f.c)+1;if(row>=ROWS){gameOver();return}blocks.push({c:f.c,r:row,color:f.color});resolveMatches();}
-function resolveMatches(){let remove=new Set();
- // linha horizontal completa, como no jogo clássico
- for(let r=0;r<ROWS;r++){let row=blocks.filter(b=>b.r===r);if(row.length===COLS)row.forEach(b=>remove.add(b));}
- // sequências horizontais de 3+ da mesma estampa/cor
- for(let r=0;r<ROWS;r++){let sorted=blocks.filter(b=>b.r===r).sort((a,b)=>a.c-b.c);let start=0;while(start<sorted.length){let end=start+1;while(end<sorted.length&&sorted[end].c===sorted[end-1].c+1&&sorted[end].color===sorted[start].color)end++;if(end-start>=3)for(let i=start;i<end;i++)remove.add(sorted[i]);start=end;}}
- if(!remove.size)return;
- let n=remove.size;remove.forEach(b=>{let q=blockRect(b);for(let i=0;i<6;i++)particles.push({x:q.x+q.w/2,y:q.y+q.h/2,vx:(Math.random()-.5)*180,vy:-Math.random()*180,life:.45,color:colors[b.color]})});
- blocks=blocks.filter(b=>!remove.has(b));score+=50*Math.max(1,Math.floor(n/3));lines++;cranes=Math.min(3,1+Math.floor(lines/2));compact();updateHUD();toastMsg('LINHA! +'+50*Math.max(1,Math.floor(n/3)));}
-function compact(){for(let c=0;c<COLS;c++){let arr=blocks.filter(b=>b.c===c).sort((a,b)=>a.r-b.r);arr.forEach((b,i)=>b.r=i)}}
-function attemptPush(dir){const centerY=player.y+player.h*.62;let pc=dir>0?Math.floor((player.x+player.w-BX)/CELL):Math.floor((player.x-BX)/CELL);if(pc<0||pc>=COLS)return;let rows=blocks.filter(b=>b.c===pc).map(b=>b.r);for(let r of rows){let br=blockRect({c:pc,r});if(centerY>br.y-5&&centerY<br.y+br.h+5){let nc=pc+dir;if(nc<0||nc>=COLS||occupied(nc,r))return;let b=occupied(pc,r);if(b){b.c=nc;score+=1;updateHUD();resolveMatches();return}}}}
-function playerPhysics(dt){let ch=chars[selected],dir=(keys.right?1:0)-(keys.left?1:0);player.vx=dir*ch.speed;
- if(keys.jump&&player.onGround){player.vy=-(superJumps>0?ch.jump*1.38:ch.jump);if(superJumps>0){superJumps--;toastMsg('SUPER! x'+superJumps)}player.onGround=false;keys.jump=false}
- let oldX=player.x;player.x+=player.vx*dt;player.x=Math.max(BX,Math.min(BX+COLS*CELL-player.w,player.x));
- for(const s of solids())if(rectHit(player,s)){player.x=oldX;if(dir)attemptPush(dir);break}
- player.vy+=960*dt;let oldY=player.y;player.y+=player.vy*dt;player.onGround=false;
- if(player.y+player.h>=GROUND){player.y=GROUND-player.h;player.vy=0;player.onGround=true}
- for(const s of solids())if(rectHit(player,s)){
-   if(oldY+player.h<=s.y+4&&player.vy>=0){player.y=s.y-player.h;player.vy=0;player.onGround=true}
-   else if(oldY>=s.y+s.h-4&&player.vy<0){player.y=s.y+s.h;player.vy=0}
- }
-}
-function fallingPhysics(dt){for(let i=falling.length-1;i>=0;i--){let f=falling[i];f.vy+=520*dt;let target=GROUND-(maxRow(f.c)+2)*CELL+3;if(f.y+f.h>=target&&target<GROUND){
-   let fr={x:f.x,y:f.y,w:f.w,h:f.h};if(rectHit(fr,player)){
-     if(collectSpecial(f)){falling.splice(i,1);updateHUD();continue}
-     if(player.vy<0 && player.y>f.y+f.h-22){score+=20;falling.splice(i,1);updateHUD();toastMsg('CRASH!');continue}
-     if(helmet>0){helmet--;falling.splice(i,1);toastMsg('CAPACETE SALVOU!');continue}
-     gameOver();return;
-   }
-   f.y+=f.vy*dt;let floorY=GROUND-(maxRow(f.c)+1)*CELL+3;if(f.y+f.h>=floorY){f.y=floorY-f.h;if(collectSpecial(f)){falling.splice(i,1);updateHUD();continue}landFalling(f);falling.splice(i,1);}
- }else f.y+=f.vy*dt;
- // contato no meio da queda
- if(i<falling.length){let fr={x:f.x,y:f.y,w:f.w,h:f.h};if(rectHit(fr,player)&&f.vy>40){if(collectSpecial(f)){falling.splice(i,1);updateHUD();continue}if(helmet>0){helmet--;falling.splice(i,1);toastMsg('CAPACETE SALVOU!');continue}gameOver();return}}
- }}
-function gameOver(){if(player.dead)return;player.dead=true;running=false;updateHUD();setTimeout(()=>{overlay.style.display='flex';overlay.querySelector('h1').innerHTML='FIM DE<br><span class="gold">TURNO</span>';overlay.querySelector('p').innerHTML='Arthur fez <b>'+score+'</b> pontos e limpou <b>'+lines+'</b> linhas.';document.querySelector('#start').textContent='JOGAR DE NOVO'},350)}
-function update(dt){if(paused||!running)return;spawnT-=dt;difficultyT+=dt;if(spawnT<=0){spawn();spawnT=Math.max(.55,1.8-lines*.035)*(cranes===1?1:cranes===2?.82:.7)}playerPhysics(dt);fallingPhysics(dt);particles.forEach(p=>{p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=500*dt;p.life-=dt});particles=particles.filter(p=>p.life>0)}
-function drawBlock(x,y,w,h,color,type='normal'){
- ctx.fillStyle='#10141c';ctx.fillRect(x-2,y-2,w+4,h+4);ctx.fillStyle=type==='normal'?colors[color]:type==='bonus'?'#f5c542':type==='helmet'?'#b5d9ff':'#d779ff';ctx.fillRect(x,y,w,h);ctx.strokeStyle='#111a';ctx.lineWidth=4;ctx.strokeRect(x+4,y+4,w-8,h-8);ctx.fillStyle='#111c';ctx.font='900 27px monospace';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(type==='bonus'?'$':type==='helmet'?'H':type==='jump'?'↑':(['C','L','X','='][color]),x+w/2,y+h/2+1)}
-function draw(){ctx.clearRect(0,0,cv.width,cv.height);
- // cenário de obra pixelado
- ctx.fillStyle='#8ec6e8';ctx.fillRect(0,0,cv.width,85);ctx.fillStyle='#eda7a4';ctx.fillRect(0,85,cv.width,GROUND-85);ctx.fillStyle='#d9908d';for(let i=0;i<18;i++)ctx.fillRect((i*73)%cv.width,130+(i*97)%400,42,8);ctx.fillStyle='#252b35';ctx.fillRect(0,GROUND,cv.width,50);
- ctx.strokeStyle='#2f3442';ctx.lineWidth=8;ctx.beginPath();ctx.moveTo(0,48);ctx.lineTo(cv.width,48);ctx.stroke();
- for(let i=0;i<cranes;i++){let x=craneXs[i];ctx.fillStyle='#5b3b93';ctx.fillRect(x-15,39,30,23);ctx.strokeStyle='#202330';ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(x,61);ctx.lineTo(x,88);ctx.stroke();ctx.beginPath();ctx.arc(x,98,18,Math.PI,0);ctx.stroke()}
- blocks.forEach(b=>{let q=blockRect(b);drawBlock(q.x,q.y,q.w,q.h,b.color)});falling.forEach(f=>drawBlock(f.x,f.y,f.w,f.h,f.color,f.type));
- // jogador
- ctx.fillStyle='#151920';ctx.fillRect(player.x+5,player.y+5,20,16);ctx.fillStyle=selected===0?'#f2c17a':['#83d8ff','#f1df28','#d7a875','#b991ff','#f2c17a'][selected-1];ctx.fillRect(player.x+9,player.y,13,12);ctx.fillStyle='#1669b2';ctx.fillRect(player.x+3,player.y+19,24,18);ctx.fillStyle='#111';ctx.fillRect(player.x+4,player.y+37,8,7);ctx.fillRect(player.x+18,player.y+37,8,7);if(helmet){ctx.fillStyle='#e7f3ff';ctx.fillRect(player.x+6,player.y-5,19,6)}
- particles.forEach(p=>{ctx.globalAlpha=Math.max(0,p.life/.45);ctx.fillStyle=p.color;ctx.fillRect(p.x,p.y,7,7);ctx.globalAlpha=1});
- // indicadores powerups
- ctx.textAlign='left';ctx.textBaseline='alphabetic';ctx.font='900 17px monospace';ctx.fillStyle='#111c';ctx.fillText((helmet?'⛑ ':'')+(superJumps?'↑x'+superJumps:''),12,650);
-}
-function loop(t){let dt=Math.min(.033,(t-last)/1000||0);last=t;update(dt);draw();requestAnimationFrame(loop)}requestAnimationFrame(loop);
-function start(){overlay.style.display='none';overlay.querySelector('h1').innerHTML='STACK <span class="gold">ARTHUR</span><br>ATTACK';overlay.querySelector('p').innerHTML='Clone jogável inspirado no <b>Stack Attack 2 Pro</b>. Empurre as caixas, forme linhas e não vire panqueca industrial.';document.querySelector('#start').textContent='JOGAR';reset();paused=false;running=true;last=performance.now()}
-document.querySelector('#start').onclick=start;document.querySelector('#pause').onclick=()=>{if(!running)return;paused=!paused;document.querySelector('#pause').textContent=paused?'▶':'Ⅱ'};
-for(const b of document.querySelectorAll('.btn')){let k=b.dataset.key;const down=e=>{e.preventDefault();keys[k]=true;b.classList.add('on')};const up=e=>{e.preventDefault();if(k!=='jump')keys[k]=false;b.classList.remove('on')};b.addEventListener('pointerdown',down);b.addEventListener('pointerup',up);b.addEventListener('pointercancel',up);b.addEventListener('pointerleave',up)}
-addEventListener('keydown',e=>{if(e.code==='ArrowLeft'||e.code==='KeyA')keys.left=true;if(e.code==='ArrowRight'||e.code==='KeyD')keys.right=true;if(e.code==='ArrowUp'||e.code==='Space'||e.code==='KeyW')keys.jump=true});addEventListener('keyup',e=>{if(e.code==='ArrowLeft'||e.code==='KeyA')keys.left=false;if(e.code==='ArrowRight'||e.code==='KeyD')keys.right=false});
-})();
-</script>
+  <main id="app" aria-label="Stack Arthur Attack">
+    <section id="hud" aria-live="polite">
+      <div class="hudBox"><small>PTS</small><strong id="score">0</strong></div>
+      <div class="hudBox"><small>LINHAS</small><strong id="lines">0</strong></div>
+      <div class="hudBox"><small>GUINDASTES</small><strong id="craneCount">1</strong></div>
+      <div class="hudBox"><small>REC</small><strong id="best">0</strong></div>
+    </section>
+
+    <button id="pause" class="roundBtn" type="button" aria-label="Pausar">Ⅱ</button>
+    <div id="toast" aria-live="polite"></div>
+
+    <section id="stageWrap">
+      <canvas id="game" width="660" height="760" aria-label="Área de jogo"></canvas>
+    </section>
+
+    <section id="controls" aria-label="Controles">
+      <div class="pad">
+        <button class="gameBtn" data-key="left" type="button" aria-label="Mover para esquerda">◀</button>
+        <button class="gameBtn" data-key="right" type="button" aria-label="Mover para direita">▶</button>
+      </div>
+      <button class="gameBtn jump" data-key="jump" type="button" aria-label="Pular"><span class="arrow">▲</span><span class="tiny">PULAR</span></button>
+    </section>
+
+    <section id="overlay">
+      <div class="card">
+        <p class="eyebrow">remake não-oficial feito pro Arthur</p>
+        <h1>STACK <span>ARTHUR</span><br />ATTACK</h1>
+        <p id="overlayText">Agora o guindaste realmente atravessa o trilho, escolhe uma coluna e solta a caixa. Feche linhas, faça 3 iguais e sobreviva.</p>
+        <div class="chars" id="chars"></div>
+        <p class="desc" id="charDesc"></p>
+        <button class="start" id="start" type="button">JOGAR</button>
+      </div>
+    </section>
+  </main>
+  <script src="game.js"></script>
 </body>
 </html>
